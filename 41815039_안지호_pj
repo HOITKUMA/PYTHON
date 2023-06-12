@@ -1,0 +1,54 @@
+import pandas as pd
+from pandas import Series, DataFrame
+import numpy as np
+import matplotlib
+import requests
+import json
+%matplotlib inline
+import os
+import folium
+import matplotlib.font_manager as fm
+import warnings
+warnings.filterwarnings(action='ignore') 
+
+path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf' 
+font_name = fm.FontProperties(fname=path, size=10).get_name() 
+matplotlib.rc('font', family=font_name)
+
+
+
+api_key = 'aac753d117204dbfa809d430b8ed1241'
+url = 'https://openapi.gg.go.kr/PlaceThatDoATasteyFoodSt'
+
+params = {
+    'Key': api_key,
+    'Type': 'json',
+    'pIndex': 1,
+    'pSize': 999
+}
+
+response = requests.get(url, params=params)
+response.text
+data = json.loads(response.text)
+맛집 = pd.read_excel('경기도으뜸맛집현황.xls')
+location = pd.read_excel('경기도으뜸맛집현황1.xls',sheet_name = None)
+location.keys()
+시군명 = location['시군명']
+WGS84위도 = location.get('WGS84위도')
+WGS84경도 = location.get('WGS84경도')
+음식점명 = location.get('음식점명')
+맛집.head()
+시군별맛집현황 = 맛집.pivot_table(index = '시군명', aggfunc = 'count', values='음식점명')
+시군별맛집현황.plot(kind = 'barh')
+
+map = folium.Map(location = [37.4, 126.6], zoom_start = 8.5)
+with open('gyeonggi.json', encoding = 'utf-8') as file:
+    geo = json.loads(file.read())
+    file.close()
+    folium.GeoJson(geo).add_to(map)
+for i in 맛집.index:
+    name = 맛집.loc[i, '음식점명']
+    lat = 맛집.loc[i, 'WGS84위도']
+    lon = 맛집.loc[i, 'WGS84경도']
+    marker = folium.Marker([lat,lon], popup=name).add_to(map)
+map
